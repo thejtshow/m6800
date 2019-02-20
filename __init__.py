@@ -1,7 +1,139 @@
-from binaryninja import *
+'''Binary Ninja architecture for the Motorola M6800 processor'''
+import struct
 
-def do_nothing(bv,function):
-	show_message_box("Do Nothing", "Congratulations! You have successfully done nothing.\n\n" +
-					 "Pat yourself on the back.", MessageBoxButtonSet.OKButtonSet, MessageBoxIcon.ErrorIcon)
+from binaryninja import (
+    Architecture, RegisterInfo, FlagRole, LowLevelILFlagCondition, log_error, InstructionTextToken,
+    InstructionTextTokenType, InstructionInfo, BranchType
+)
 
-PluginCommand.register_for_address("Useless Plugin", "Basically does nothing", do_nothing)
+# pylint: disable=W0401
+from .instructions import *
+
+
+class M6800(Architecture):
+    '''M6800 Architecture class.'''
+    name = 'M6800'
+    address_size = 2
+    default_int_size = 2
+
+    regs = {
+        'SP': RegisterInfo('SP', 2),  # stack pointer (has high and low)
+        'PC': RegisterInfo('PC', 2),  # program counter (has high and low)
+        'ACCA': RegisterInfo('ACCA', 2),  # Accumulator A
+        'ACCB': RegisterInfo('ACCB', 2),  # Accumulator B
+        'IX': RegisterInfo('IX', 2),  # Index Register (has high and low)
+    }
+
+    flags = ['C', 'V', 'Z', 'N', 'I', 'H']
+
+    flag_roles = {
+        'C': FlagRole.CarryFlagRole,
+        'V': FlagRole.OverflowFlagRole,
+        'Z': FlagRole.ZeroFlagRole,
+        'N': FlagRole.NegativeSignFlagRole,
+        'I': FlagRole.SpecialFlagRole,  # Interrupt Flag
+        'H': FlagRole.HalfCarryFlagRole
+    }
+
+    # TODO: figure out how half-carry fits into this
+    flags_required_for_flag_condition = {
+        LowLevelILFlagCondition.LLFC_UGE: ['C'],
+        LowLevelILFlagCondition.LLFC_UGT: ['C', 'Z'],
+        LowLevelILFlagCondition.LLFC_ULT: ['C'],
+        LowLevelILFlagCondition.LLFC_SGE: ['N', 'V'],
+        LowLevelILFlagCondition.LLFC_SLT: ['N', 'V'],
+        LowLevelILFlagCondition.LLFC_SGT: ['Z', 'N', 'V'],
+        LowLevelILFlagCondition.LLFC_E: ['Z'],
+        LowLevelILFlagCondition.LLFC_NE: ['Z'],
+        LowLevelILFlagCondition.LLFC_NEG: ['N'],
+        LowLevelILFlagCondition.LLFC_POS: ['N']
+    }
+
+    stack_pointer = 'SP'
+
+    def _decode_instruction(self, data, addr):
+        opcode = data[0]
+        try:
+            nmemonic, inst_length, accumulator, mode = INSTRUCTIONS[opcode]
+        except KeyError:
+            raise LookupError(f'Opcode 0x{opcode:X} at address 0x{addr:X} is invalid.')
+
+        true_location = None
+        false_location = None
+
+        if opcode in CALL_INSTRUCTIONS + JMP_INSTRUCTIONS + BRANCH_INSTRUCTIONS:
+            if inst_length == 2:
+                true_location = addr + 2 + data[1]
+            else:
+                true_location = struct.unpack('>H', data[1:3])[0]
+            if opcode in BRANCH_INSTRUCTIONS:  # conditionals have a false location
+                false_location = addr + inst_length
+        return opcode, nmemonic, inst_length, accumulator, mode, true_location, false_location
+
+    def get_instruction_text(self, data, addr):
+        try:
+            (_, nmemonic, inst_length,
+             accumulator, mode, true_location, _) = self._decode_instruction(data, addr)
+        except LookupError as error:
+            log_error(error.__str__())
+            return None
+
+        tokens = [
+            InstructionTextToken(InstructionTextTokenType.TextToken, nmemonic)
+        ]
+        if accumulator:
+            tokens.append(
+                InstructionTextToken(InstructionTextTokenType.OperandSeparatorToken, ' ')
+            )
+            tokens.append(
+                InstructionTextToken(InstructionTextTokenType.RegisterToken, f'ACC{accumulator}')
+            )
+        if true_location:
+            tokens.append(
+                InstructionTextToken(InstructionTextTokenType.OperandSeparatorToken, ' ')
+            )
+            if mode != 'IND':
+                tokens.append(
+                    InstructionTextToken(
+                        InstructionTextTokenType.PossibleAddressToken, f'{true_location:X}'
+                    )
+                )
+            else:
+                tokens.append(
+                    InstructionTextToken(
+                        InstructionTextTokenType.TextToken, 'INDEXED'
+                    )
+                )
+        return tokens, inst_length
+
+    def get_instruction_info(self, data, addr):
+        try:
+            (opcode, _, inst_length,
+             _, mode, true_location, false_location) = self._decode_instruction(data, addr)
+        except LookupError as error:
+            log_error(error.__str__())
+            return None
+
+        inst = InstructionInfo()
+        inst.length = inst_length
+
+        if (opcode in BRANCH_INSTRUCTIONS + CALL_INSTRUCTIONS + JMP_INSTRUCTIONS) and mode == 'IND':
+            inst.add_branch(BranchType.UnresolvedBranch)
+        elif opcode in BRANCH_INSTRUCTIONS:
+            inst.add_branch(BranchType.TrueBranch, true_location)
+            inst.add_branch(BranchType.FalseBranch, false_location)
+        elif opcode in CALL_INSTRUCTIONS:
+            inst.add_branch(BranchType.CallDestination, true_location)
+        elif opcode in JMP_INSTRUCTIONS:
+            inst.add_branch(BranchType.UnconditionalBranch, true_location)
+        elif opcode in RETURN_INSTRUCTIONS:
+            inst.add_branch(BranchType.FunctionReturn)
+
+        return inst
+
+    def get_instruction_low_level_il(self, data, addr, il):
+        return None
+
+
+# Perform Binary Ninja loading
+M6800.register()
