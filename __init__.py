@@ -177,7 +177,9 @@ class M6800(Architecture):
             operand, second_operand = IMPLIED_OPERANDS[inst_operand](il)
         # if we are dual mode, we have to handle things special
         if inst_type == InstructionType.DUAL:
-            second_operand = il.reg(1, inst_operand)
+            second_operand = inst_operand
+
+        il.append(LLIL_OPERATIONS[nmemonic](il, operand, second_operand))
 
         return None
 
