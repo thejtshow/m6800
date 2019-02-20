@@ -33,7 +33,7 @@ class M6800(Architecture):
         'Z': FlagRole.ZeroFlagRole,
         'N': FlagRole.NegativeSignFlagRole,
         'I': FlagRole.SpecialFlagRole,      # Interrupt Flag
-        'H': FlagRole.HalfCarryFlagRole     # may be able to ignore -- no branch uses it
+        'H': FlagRole.HalfCarryFlagRole
     }
 
     flags_required_for_flag_condition = {
@@ -64,7 +64,7 @@ class M6800(Architecture):
         # need to collect information based on each address mode
         # INHERENT addressing => value is None
         # ACCUMULATOR addressing => value is in accumulator
-        if mode == AddressMode.RELATIVE:
+        if mode == AddressMode.RELATIVE:  # calculate absolute address here
             # should always be 2 bytes long, second byte is 2's complement
             value = addr + inst_length + int.from_bytes(data[1:2], 'big', signed=True)
         elif mode == AddressMode.IMMEDIATE:
@@ -149,11 +149,14 @@ class M6800(Architecture):
             return None
 
         # Figure out what the instruction uses
+        load_size = 2 if nmemonic in BIGGER_LOADS else 1
+        second_operand = None
+
         if mode == AddressMode.ACCUMULATOR:
             operand = il.reg(1, inst_operand)
         elif mode == AddressMode.INDEXED:
             operand = il.load(
-                1,
+                load_size,
                 il.add(
                     2,
                     il.reg(2, 'IX'),
@@ -163,22 +166,32 @@ class M6800(Architecture):
         elif mode in [AddressMode.DIRECT,
                       AddressMode.EXTENDED]:
             operand = il.load(
-                1,
+                load_size,
                 il.const(
                     inst_length - 1,
                     value
                 )
             )
         elif mode == AddressMode.IMMEDIATE:
-            operand = il.const(inst_length - 1, value)
-        elif mode == AddressMode.RELATIVE:  # we have already calculated the absolute address
-            operand = il.const(2, value)
-        elif mode == AddressMode.IMPLIED:  # these will be different for each instruction
-            operand, second_operand = IMPLIED_OPERANDS[inst_operand](il)
+            operand = il.const(
+                inst_length - 1,
+                value
+            )
+        elif mode == AddressMode.RELATIVE:
+            # we have already calculated the absolute address
+            operand = il.load(
+                load_size,
+                il.const(2, value)
+            )
+        elif mode == AddressMode.IMPLIED:
+            # these will be different for each instruction
+            pass
+
         # if we are dual mode, we have to handle things special
         if inst_type == InstructionType.DUAL:
-            second_operand = inst_operand
+            pass
 
+        # Finally, calculate and append the instruction
         il.append(LLIL_OPERATIONS[nmemonic](il, operand, second_operand))
 
         return inst_length

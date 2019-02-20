@@ -5,13 +5,13 @@ from enum import IntEnum
 
 class AddressMode(IntEnum):
     '''All of the various addressing modes for the M6800'''
-    ACCUMULATOR = 0
-    IMMEDIATE = 1
-    DIRECT = 2
-    EXTENDED = 3
-    INDEXED = 4
-    IMPLIED = 5
-    RELATIVE = 6
+    ACCUMULATOR = 0     # ACCA or ACCB
+    IMMEDIATE = 1       # (0-65535)
+    DIRECT = 2          # [(0-255)]
+    EXTENDED = 3        # [(0-65535)]
+    INDEXED = 4         # [IX + (0-255)]
+    IMPLIED = 5         # inherent to the instruction
+    RELATIVE = 6        # [addr + 2 + (0-255)]
 
 
 class InstructionType(IntEnum):
@@ -22,23 +22,6 @@ class InstructionType(IntEnum):
     RETURN = 3                  # return from subroutine
     NOP = 4                     # no-op
     DUAL = 5                    # instructions that have dual operands
-
-
-IMPLIED_OPERANDS = {
-    'Flags': lambda il: (il.reg(1, 'ACCA'), None),
-    'IX': lambda il: (il.reg(2, 'IX'), None),
-    'V': lambda il: (il.flag('V'), None),
-    'C': lambda il: (il.flag('C'), None),
-    'I': lambda il: (il.flag('I'), None),
-    'AB': lambda il: (il.reg(1, 'ACCA'), il.reg(1, 'ACCB')),
-    'BA': lambda il: (il.reg(1, 'ACCB'), il.reg(1, 'ACCA')),
-    'ACCA': lambda il: il.reg(1, 'ACCA'),
-    'ACCB': lambda il: il.reg(1, 'ACCB'),
-    'XS': lambda il: (il.reg(2, 'IX'), il.reg(2, 'SP')),
-    'SX': lambda il: (il.reg(2, 'SP'), il.reg(2, 'IX')),
-    'SP': lambda il: (il.reg(2, 'SP'), None),
-    None: lambda _: (None, None)
-}
 
 
 INSTRUCTIONS = {
@@ -242,58 +225,17 @@ INSTRUCTIONS = {
     0xFF: ('STX', 3, None, None, AddressMode.EXTENDED),
 }
 
+# These instructions operate on a word, not a byte
+BIGGER_LOADS = ['CPX', 'LDS', 'LDX', 'STS', 'STX']
+
 
 LLIL_OPERATIONS = {
-    'ABA': lambda il, op_1, op_2: il.set_reg(
-        1,
-        'ACCA',
-        il.add(
-            1,
-            op_1,
-            op_2
-        )
-    ),
-    'ADC': lambda il, op_1, op_2: il.set_reg(
-        1,
-        op_1,
-        il.add(
-            1,
-            il.add(
-                1,
-                il.reg(1, op_1),
-                op_2
-            ),
-            il.flag('C')
-        )
-    ),
-    'ADD': lambda il, op_1, op_2: il.set_reg(
-        1,
-        op_1,
-        il.add(
-            1,
-            il.reg(1, op_1),
-            op_2
-        )
-    ),
-    'AND': lambda il, op_1, op_2: il.set_reg(
-        1,
-        op_1,
-        il.and_expr(
-            1,
-            il.reg(1, op_1),
-            op_2
-        )
-    ),
-    'ASL': lambda il, op_1, op_2: il.shift_left(
-        1,
-        op_1,
-        1
-    ),
-    'ASR': lambda il, op_1, op_2: il.arith_shift_right(
-        1,
-        op_1,
-        1
-    ),
+    'ABA': lambda il, op_1, op_2: il.unimplemented(),
+    'ADC': lambda il, op_1, op_2: il.unimplemented(),
+    'ADD': lambda il, op_1, op_2: il.unimplemented(),
+    'AND': lambda il, op_1, op_2: il.unimplemented(),
+    'ASL': lambda il, op_1, op_2: il.unimplemented(),
+    'ASR': lambda il, op_1, op_2: il.unimplemented(),
     'BCC': lambda il, op_1, op_2: il.unimplemented(),
     'BCS': lambda il, op_1, op_2: il.unimplemented(),
     'BEQ': lambda il, op_1, op_2: il.unimplemented(),
