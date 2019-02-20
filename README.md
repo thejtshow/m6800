@@ -5,9 +5,13 @@ _Plugin for the Motorola M6800 processor found in many pinball machines._
 
 ## Description:
 
-This is a longer description meant for a sample plugin that demonstrates the metadata format for Binary Ninja plugins.
+This plugin disassembles Motorola M6800 assembly code and generates LLIL.
 
-The forthcoming plugin installer will be able to parse these files automatically to allow easy selection and installation. 
+You will still need to create your flat file with the ROM data at the offsets they are expected to be listed. 
+
+To install this plugin, navigate to your Binary Ninja plugins directory, and run
+
+git clone https://github.com/thejtshow/m6800.git m6800
 
 ## Minimum Version
 
