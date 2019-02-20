@@ -230,7 +230,16 @@ BIGGER_LOADS = ['CPX', 'LDS', 'LDX', 'STS', 'STX']
 
 
 LLIL_OPERATIONS = {
-    'ABA': lambda il, op_1, op_2: il.unimplemented(),
+    'ABA': lambda il, op_1, op_2: il.set_reg(
+        1,
+        'ACCA',
+        il.add(
+            1,
+            il.reg(1, 'ACCA'),
+            il.reg(1, 'ACCB'),
+            flags='HNZVC'
+        )
+    ),
     'ADC': lambda il, op_1, op_2: il.unimplemented(),
     'ADD': lambda il, op_1, op_2: il.unimplemented(),
     'AND': lambda il, op_1, op_2: il.unimplemented(),
@@ -253,22 +262,61 @@ LLIL_OPERATIONS = {
     'BSR': lambda il, op_1, op_2: il.unimplemented(),
     'BVC': lambda il, op_1, op_2: il.unimplemented(),
     'BVS': lambda il, op_1, op_2: il.unimplemented(),
-    'CBA': lambda il, op_1, op_2: il.unimplemented(),
-    'CLC': lambda il, op_1, op_2: il.unimplemented(),
-    'CLI': lambda il, op_1, op_2: il.unimplemented(),
+    'CBA': lambda il, op_1, op_2: il.sub(
+        1,
+        il.reg(1, 'ACCA'),
+        il.reg(1, 'ACCB'),
+        flags='NZVC'
+    ),
+    'CLC': lambda il, op_1, op_2: il.flag_bit(1, 'C', 0),
+    'CLI': lambda il, op_1, op_2: il.flag_bit(1, 'I', 0),
     'CLR': lambda il, op_1, op_2: il.unimplemented(),
-    'CLV': lambda il, op_1, op_2: il.unimplemented(),
+    'CLV': lambda il, op_1, op_2: il.flag_bit(1, 'V', 0),
     'CMP': lambda il, op_1, op_2: il.unimplemented(),
     'COM': lambda il, op_1, op_2: il.unimplemented(),
     'CPX': lambda il, op_1, op_2: il.unimplemented(),
     'DAA': lambda il, op_1, op_2: il.unimplemented(),
     'DEC': lambda il, op_1, op_2: il.unimplemented(),
-    'DES': lambda il, op_1, op_2: il.unimplemented(),
-    'DEX': lambda il, op_1, op_2: il.unimplemented(),
+    'DES': lambda il, op_1, op_2: il.set_reg(
+        2,
+        'SP',
+        il.sub(
+            2,
+            il.reg(2, 'SP'),
+            il.const(2, 1)
+        )
+    ),
+    'DEX': lambda il, op_1, op_2: il.set_reg(
+        2,
+        'IX',
+        il.sub(
+            2,
+            il.reg(2, 'IX'),
+            il.const(2, 1),
+            flags='Z'
+        )
+    ),
     'EOR': lambda il, op_1, op_2: il.unimplemented(),
     'INC': lambda il, op_1, op_2: il.unimplemented(),
-    'INS': lambda il, op_1, op_2: il.unimplemented(),
-    'INX': lambda il, op_1, op_2: il.unimplemented(),
+    'INS': lambda il, op_1, op_2: il.set_reg(
+        2,
+        'SP',
+        il.add(
+            2,
+            il.reg(2, 'SP'),
+            il.const(2, 1)
+        )
+    ),
+    'INX': lambda il, op_1, op_2: il.set_reg(
+        2,
+        'IX',
+        il.add(
+            2,
+            il.reg(2, 'IX'),
+            il.const(2, 1),
+            flags='Z'
+        )
+    ),
     'JMP': lambda il, op_1, op_2: il.unimplemented(),
     'JSR': lambda il, op_1, op_2: il.unimplemented(),
     'LDA': lambda il, op_1, op_2: il.unimplemented(),
@@ -276,7 +324,7 @@ LLIL_OPERATIONS = {
     'LDX': lambda il, op_1, op_2: il.unimplemented(),
     'LSR': lambda il, op_1, op_2: il.unimplemented(),
     'NEG': lambda il, op_1, op_2: il.unimplemented(),
-    'NOP': lambda il, op_1, op_2: il.unimplemented(),
+    'NOP': lambda il, op_1, op_2: il.nop(),
     'ORA': lambda il, op_1, op_2: il.unimplemented(),
     'PSH': lambda il, op_1, op_2: il.unimplemented(),
     'PUL': lambda il, op_1, op_2: il.unimplemented(),
@@ -286,20 +334,46 @@ LLIL_OPERATIONS = {
     'RTS': lambda il, op_1, op_2: il.unimplemented(),
     'SBA': lambda il, op_1, op_2: il.unimplemented(),
     'SBC': lambda il, op_1, op_2: il.unimplemented(),
-    'SEC': lambda il, op_1, op_2: il.unimplemented(),
-    'SEI': lambda il, op_1, op_2: il.unimplemented(),
-    'SEV': lambda il, op_1, op_2: il.unimplemented(),
+    'SEC': lambda il, op_1, op_2: il.flag_bit(1, 'C', 0),
+    'SEI': lambda il, op_1, op_2: il.flag_bit(1, 'I', 0),
+    'SEV': lambda il, op_1, op_2: il.flag_bit(1, 'V', 0),
     'STA': lambda il, op_1, op_2: il.unimplemented(),
     'STS': lambda il, op_1, op_2: il.unimplemented(),
     'STX': lambda il, op_1, op_2: il.unimplemented(),
     'SUB': lambda il, op_1, op_2: il.unimplemented(),
     'SWI': lambda il, op_1, op_2: il.unimplemented(),
-    'TAB': lambda il, op_1, op_2: il.unimplemented(),
+    'TAB': lambda il, op_1, op_2: il.set_reg(
+        1,
+        'ACCB',
+        il.reg(1, 'ACCA'),
+        flags='NZV'
+    ),
     'TAP': lambda il, op_1, op_2: il.unimplemented(),
-    'TBA': lambda il, op_1, op_2: il.unimplemented(),
+    'TBA': lambda il, op_1, op_2: il.set_reg(
+        1,
+        'ACCA',
+        il.reg(1, 'ACCB'),
+        flags='NZV'
+    ),
     'TPA': lambda il, op_1, op_2: il.unimplemented(),
     'TST': lambda il, op_1, op_2: il.unimplemented(),
-    'TSX': lambda il, op_1, op_2: il.unimplemented(),
-    'TXS': lambda il, op_1, op_2: il.unimplemented(),
+    'TSX': lambda il, op_1, op_2: il.set_reg(
+        2,
+        'IX',
+        il.add(
+            2,
+            il.reg(2, 'SP'),
+            il.const(2, 1)
+        )
+    ),
+    'TXS': lambda il, op_1, op_2: il.set_reg(
+        2,
+        'SP',
+        il.sub(
+            2,
+            il.reg(2, 'IX'),
+            il.const(2, 1)
+        )
+    ),
     'WAI': lambda il, op_1, op_2: il.unimplemented()
 }

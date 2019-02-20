@@ -150,7 +150,7 @@ class M6800(Architecture):
 
         # Figure out what the instruction uses
         load_size = 2 if nmemonic in BIGGER_LOADS else 1
-        second_operand = None
+        operand, second_operand = None, None
 
         if mode == AddressMode.ACCUMULATOR:
             operand = il.reg(1, inst_operand)
@@ -183,9 +183,6 @@ class M6800(Architecture):
                 load_size,
                 il.const(2, value)
             )
-        elif mode == AddressMode.IMPLIED:
-            # these will be different for each instruction
-            pass
 
         # if we are dual mode, we have to handle things special
         if inst_type == InstructionType.DUAL:
