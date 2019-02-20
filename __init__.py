@@ -6,10 +6,11 @@ from binaryninja import (
     InstructionTextTokenType, InstructionInfo, BranchType
 )
 
-# pylint: disable=W0401
+# pylint: disable=wildcard-import
 from .instructions import *
 
 
+# pylint: disable=abstract-method
 class M6800(Architecture):
     '''M6800 Architecture class.'''
     name = 'M6800'
@@ -17,11 +18,11 @@ class M6800(Architecture):
     default_int_size = 2
 
     regs = {
-        'SP': RegisterInfo('SP', 2),  # stack pointer (has high and low)
-        'PC': RegisterInfo('PC', 2),  # program counter (has high and low)
-        'ACCA': RegisterInfo('ACCA', 2),  # Accumulator A
-        'ACCB': RegisterInfo('ACCB', 2),  # Accumulator B
-        'IX': RegisterInfo('IX', 2),  # Index Register (has high and low)
+        'SP': RegisterInfo('SP', 2),        # Stack Pointer
+        'PC': RegisterInfo('PC', 2),        # Program Counter
+        'IX': RegisterInfo('IX', 2),        # Index Register
+        'ACCA': RegisterInfo('ACCA', 1),    # Accumulator A
+        'ACCB': RegisterInfo('ACCB', 1)     # Accumulator B
     }
 
     flags = ['C', 'V', 'Z', 'N', 'I', 'H']
@@ -51,7 +52,8 @@ class M6800(Architecture):
 
     stack_pointer = 'SP'
 
-    def _decode_instruction(self, data, addr):
+    @staticmethod
+    def _decode_instruction(data, addr):
         opcode = data[0]
         try:
             nmemonic, inst_length, accumulator, mode = INSTRUCTIONS[opcode]
@@ -68,12 +70,12 @@ class M6800(Architecture):
                 true_location = struct.unpack('>H', data[1:3])[0]
             if opcode in BRANCH_INSTRUCTIONS:  # conditionals have a false location
                 false_location = addr + inst_length
-        return opcode, nmemonic, inst_length, accumulator, mode, true_location, false_location
+        return (opcode, nmemonic, inst_length, accumulator, mode, true_location, false_location)
 
     def get_instruction_text(self, data, addr):
         try:
             (_, nmemonic, inst_length,
-             accumulator, mode, true_location, _) = self._decode_instruction(data, addr)
+             accumulator, mode, true_location, _) = M6800._decode_instruction(data, addr)
         except LookupError as error:
             log_error(error.__str__())
             return None
@@ -86,13 +88,13 @@ class M6800(Architecture):
                 InstructionTextToken(InstructionTextTokenType.OperandSeparatorToken, ' ')
             )
             tokens.append(
-                InstructionTextToken(InstructionTextTokenType.RegisterToken, f'ACC{accumulator}')
+                InstructionTextToken(InstructionTextTokenType.RegisterToken, accumulator)
             )
         if true_location:
             tokens.append(
                 InstructionTextToken(InstructionTextTokenType.OperandSeparatorToken, ' ')
             )
-            if mode != 'IND':
+            if mode != AddressMode.INDEXED:
                 tokens.append(
                     InstructionTextToken(
                         InstructionTextTokenType.PossibleAddressToken, f'{true_location:X}'
@@ -109,7 +111,7 @@ class M6800(Architecture):
     def get_instruction_info(self, data, addr):
         try:
             (opcode, _, inst_length,
-             _, mode, true_location, false_location) = self._decode_instruction(data, addr)
+             _, mode, true_location, false_location) = M6800._decode_instruction(data, addr)
         except LookupError as error:
             log_error(error.__str__())
             return None
@@ -117,7 +119,8 @@ class M6800(Architecture):
         inst = InstructionInfo()
         inst.length = inst_length
 
-        if (opcode in BRANCH_INSTRUCTIONS + CALL_INSTRUCTIONS + JMP_INSTRUCTIONS) and mode == 'IND':
+        if (opcode in BRANCH_INSTRUCTIONS + CALL_INSTRUCTIONS + JMP_INSTRUCTIONS
+                and mode == AddressMode.INDEXED):
             inst.add_branch(BranchType.UnresolvedBranch)
         elif opcode in BRANCH_INSTRUCTIONS:
             inst.add_branch(BranchType.TrueBranch, true_location)
