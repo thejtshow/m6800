@@ -36,6 +36,15 @@ class M6800(Architecture):
         'H': FlagRole.HalfCarryFlagRole
     }
 
+    flag_write_types = ['HNZVC', 'NZVC', 'NZV', 'Z']
+
+    flags_written_by_flag_write_type = {
+        'HNZVC': ['H', 'N', 'Z', 'V', 'C'],
+        'NZVC': ['N', 'Z', 'V', 'C'],
+        'NZV': ['N', 'Z', 'V'],
+        'Z': ['Z']
+    }
+
     flags_required_for_flag_condition = {
         LowLevelILFlagCondition.LLFC_UGE: ['C'],
         LowLevelILFlagCondition.LLFC_UGT: ['C', 'Z'],
