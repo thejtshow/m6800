@@ -1,7 +1,7 @@
-# Sample Plugin (v1.0 alpha)
-Author: **Vector 35 LLC**
+# m6800 (v1.0 alpha)
+Author: **thejtshow**
 
-_This is a short description meant to fit on one line._
+_Plugin for the Motorola M6800 processor found in many pinball machines._
 
 ## Description:
 
@@ -18,13 +18,6 @@ This plugin requires the following minimum version of Binary Ninja:
 
 
 ## Required Dependencies
-
-The following dependencies are required for this plugin:
-
- * pip - array, of, pip, dependencies
- * installers - https://bogus-domain/this-package.exe
- * other - The sample plugin requires [this random package](https://bogus-domain/this-package/) be installed.
- * apt - apt, packages
 
 
 ## License
