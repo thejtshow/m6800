@@ -3,7 +3,7 @@ import struct
 
 from binaryninja import (
     Architecture, RegisterInfo, FlagRole, LowLevelILFlagCondition, log_error, InstructionTextToken,
-    InstructionTextTokenType as ITTT, InstructionInfo, BranchType
+    InstructionTextTokenType as ITTT, InstructionInfo, BranchType, LowLevelILFunction
 )
 
 # pylint: disable=wildcard-import
@@ -55,7 +55,7 @@ class M6800(Architecture):
     def _decode_instruction(data, addr):
         opcode = data[0]
         try:
-            nmemonic, inst_length, accumulator, inst_type, mode = INSTRUCTIONS[opcode]
+            nmemonic, inst_length, inst_operand, inst_type, mode = INSTRUCTIONS[opcode]
         except KeyError:
             raise LookupError(f'Opcode 0x{opcode:X} at address 0x{addr:X} is invalid.')
 
@@ -78,11 +78,11 @@ class M6800(Architecture):
                       AddressMode.DIRECT]:
             value = data[1]
 
-        return nmemonic, inst_length, accumulator, inst_type, mode, value
+        return nmemonic, inst_length, inst_operand, inst_type, mode, value
 
     def get_instruction_text(self, data, addr):
         try:
-            (nmemonic, inst_length, accumulator,
+            (nmemonic, inst_length, inst_operand,
              _, mode, value) = M6800._decode_instruction(data, addr)
         except LookupError as error:
             log_error(error.__str__())
@@ -94,20 +94,20 @@ class M6800(Architecture):
 
         if mode == AddressMode.ACCUMULATOR:
             tokens.append(InstructionTextToken(ITTT.OperandSeparatorToken, ' '))
-            tokens.append(InstructionTextToken(ITTT.RegisterToken, accumulator))
+            tokens.append(InstructionTextToken(ITTT.RegisterToken, inst_operand))
         elif mode in [AddressMode.DIRECT, AddressMode.EXTENDED, AddressMode.RELATIVE]:
             tokens.append(InstructionTextToken(ITTT.OperandSeparatorToken, ' '))
             tokens.append(InstructionTextToken(ITTT.PossibleAddressToken, f'0x{value:X}', value))
         elif mode == AddressMode.IMMEDIATE:
-            if accumulator:
+            if inst_operand in ['ACCA', 'ACCB']:
                 tokens.append(InstructionTextToken(ITTT.OperandSeparatorToken, ' '))
-                tokens.append(InstructionTextToken(ITTT.RegisterToken, accumulator))
+                tokens.append(InstructionTextToken(ITTT.RegisterToken, inst_operand))
             tokens.append(InstructionTextToken(ITTT.OperandSeparatorToken, ' '))
             tokens.append(InstructionTextToken(ITTT.IntegerToken, f'0x{value:X}', value))
         elif mode == AddressMode.INDEXED:
-            if accumulator:
+            if inst_operand in ['ACCA', 'ACCB']:
                 tokens.append(InstructionTextToken(ITTT.OperandSeparatorToken, ' '))
-                tokens.append(InstructionTextToken(ITTT.RegisterToken, accumulator))
+                tokens.append(InstructionTextToken(ITTT.RegisterToken, inst_operand))
             tokens.append(InstructionTextToken(ITTT.OperandSeparatorToken, ' '))
             tokens.append(InstructionTextToken(ITTT.BeginMemoryOperandToken, '['))
             tokens.append(InstructionTextToken(ITTT.RegisterToken, 'IX'))
@@ -140,7 +140,45 @@ class M6800(Architecture):
 
         return inst
 
-    def get_instruction_low_level_il(self, data, addr, il):
+    def get_instruction_low_level_il(self, data, addr, il: LowLevelILFunction):
+        try:
+            (nmemonic, inst_length, inst_operand,
+             inst_type, mode, value) = M6800._decode_instruction(data, addr)
+        except LookupError as error:
+            log_error(error.__str__())
+            return None
+
+        # Figure out what the instruction uses
+        if mode == AddressMode.ACCUMULATOR:
+            operand = il.reg(1, inst_operand)
+        elif mode == AddressMode.INDEXED:
+            operand = il.load(
+                1,
+                il.add(
+                    2,
+                    il.reg(2, 'IX'),
+                    il.const(1, value)
+                )
+            )
+        elif mode in [AddressMode.DIRECT,
+                      AddressMode.EXTENDED]:
+            operand = il.load(
+                1,
+                il.const(
+                    inst_length - 1,
+                    value
+                )
+            )
+        elif mode == AddressMode.IMMEDIATE:
+            operand = il.const(inst_length - 1, value)
+        elif mode == AddressMode.RELATIVE:  # we have already calculated the absolute address
+            operand = il.const(2, value)
+        elif mode == AddressMode.IMPLIED:  # these will be different for each instruction
+            operand, second_operand = IMPLIED_OPERANDS[inst_operand](il)
+        # if we are dual mode, we have to handle things special
+        if inst_type == InstructionType.DUAL:
+            second_operand = il.reg(1, inst_operand)
+
         return None
 
 
