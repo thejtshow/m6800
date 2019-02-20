@@ -119,14 +119,24 @@ class M6800(Architecture):
 
     def get_instruction_info(self, data, addr):
         try:
-            (nmemonic, inst_length, accumulator,
-             inst_type, mode, value) = M6800._decode_instruction(data, addr)
+            (_, inst_length, _,
+             inst_type, _, value) = M6800._decode_instruction(data, addr)
         except LookupError as error:
             log_error(error.__str__())
             return None
 
         inst = InstructionInfo()
         inst.length = inst_length
+
+        if inst_type == InstructionType.CONDITIONAL_BRANCH:
+            inst.add_branch(BranchType.TrueBranch, value)
+            inst.add_branch(BranchType.FalseBranch, addr + inst_length)
+        elif inst_type == InstructionType.UNCONDITIONAL_BRANCH:
+            inst.add_branch(BranchType.UnconditionalBranch, value)
+        elif inst_type == InstructionType.CALL:
+            inst.add_branch(BranchType.CallDestination, value)
+        elif inst_type == InstructionType.RETURN:
+            inst.add_branch(BranchType.FunctionReturn)
 
         return inst
 
