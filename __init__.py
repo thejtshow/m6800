@@ -181,7 +181,7 @@ class M6800(Architecture):
 
         il.append(LLIL_OPERATIONS[nmemonic](il, operand, second_operand))
 
-        return None
+        return inst_length
 
 
 # Perform Binary Ninja loading
