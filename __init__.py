@@ -66,7 +66,7 @@ class M6800(Architecture):
         # ACCUMULATOR addressing => value is in accumulator
         if mode == AddressMode.RELATIVE:
             # should always be 2 bytes long, second byte is 2's complement
-            value = addr + inst_length + data[1].to_bytes(1, 'big', signed=True)
+            value = addr + inst_length + int.from_bytes(data[1:2], 'big', signed=True)
         elif mode == AddressMode.IMMEDIATE:
             if inst_length == 2:
                 value = data[1]
@@ -97,9 +97,7 @@ class M6800(Architecture):
             tokens.append(InstructionTextToken(ITTT.RegisterToken, accumulator))
         elif mode in [AddressMode.DIRECT, AddressMode.EXTENDED, AddressMode.RELATIVE]:
             tokens.append(InstructionTextToken(ITTT.OperandSeparatorToken, ' '))
-            tokens.append(InstructionTextToken(ITTT.BeginMemoryOperandToken, '['))
             tokens.append(InstructionTextToken(ITTT.PossibleAddressToken, f'0x{value:X}', value))
-            tokens.append(InstructionTextToken(ITTT.EndMemoryOperandToken, ']'))
         elif mode == AddressMode.IMMEDIATE:
             if accumulator:
                 tokens.append(InstructionTextToken(ITTT.OperandSeparatorToken, ' '))
@@ -111,9 +109,11 @@ class M6800(Architecture):
                 tokens.append(InstructionTextToken(ITTT.OperandSeparatorToken, ' '))
                 tokens.append(InstructionTextToken(ITTT.RegisterToken, accumulator))
             tokens.append(InstructionTextToken(ITTT.OperandSeparatorToken, ' '))
+            tokens.append(InstructionTextToken(ITTT.BeginMemoryOperandToken, '['))
             tokens.append(InstructionTextToken(ITTT.RegisterToken, 'IX'))
             tokens.append(InstructionTextToken(ITTT.OperandSeparatorToken, ' + '))
             tokens.append(InstructionTextToken(ITTT.IntegerToken, f'0x{value:X}', value))
+            tokens.append(InstructionTextToken(ITTT.EndMemoryOperandToken, ']'))
 
         return tokens, inst_length
 
