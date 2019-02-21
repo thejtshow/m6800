@@ -4,7 +4,8 @@ import ctypes
 
 from binaryninja import (
     Architecture, RegisterInfo, FlagRole, LowLevelILFlagCondition, log_error, InstructionTextToken,
-    InstructionTextTokenType as ITTT, InstructionInfo, BranchType, LowLevelILFunction, LowLevelILLabel
+    InstructionTextTokenType as ITTT, InstructionInfo, BranchType,
+    LowLevelILFunction, LowLevelILLabel
 )
 
 # pylint: disable=wildcard-import
@@ -37,7 +38,7 @@ class M6800(Architecture):
         'H': FlagRole.HalfCarryFlagRole
     }
 
-    flag_write_types = ['HNZVC', 'NZVC', 'NZV', 'Z']
+    flag_write_types = ['', 'HNZVC', 'NZVC', 'NZV', 'Z']
 
     flags_written_by_flag_write_type = {
         'HNZVC': ['H', 'N', 'Z', 'V', 'C'],
@@ -54,6 +55,7 @@ class M6800(Architecture):
         LowLevelILFlagCondition.LLFC_SGE: ['N', 'V'],
         LowLevelILFlagCondition.LLFC_SLT: ['N', 'V'],
         LowLevelILFlagCondition.LLFC_SGT: ['Z', 'N', 'V'],
+        LowLevelILFlagCondition.LLFC_SLE: ['Z', 'N', 'V'],
         LowLevelILFlagCondition.LLFC_E: ['Z'],
         LowLevelILFlagCondition.LLFC_NE: ['Z'],
         LowLevelILFlagCondition.LLFC_NEG: ['N'],
@@ -66,7 +68,7 @@ class M6800(Architecture):
 
     # pylint: disable=invalid-name
     @staticmethod
-    def _handle_branch(il: LowLevelILFunction, inst_length, value):
+    def _handle_branch(il: LowLevelILFunction, nmemonic, inst_length, value):
         true_label = il.get_label_for_address(Architecture['M6800'], value)
 
         if true_label is None:
@@ -84,7 +86,7 @@ class M6800(Architecture):
             false_label = LowLevelILLabel()
             false_label_found = False
 
-        il.append(il.if_expr(None, true_label, false_label))
+        il.append(il.if_expr(LLIL_OPERATIONS[nmemonic](il, None, None), true_label, false_label))
 
         if indirect:
             il.mark_label(true_label)
@@ -199,7 +201,7 @@ class M6800(Architecture):
 
         # if this is a conditional branch, handle that separately
         if inst_type == InstructionType.CONDITIONAL_BRANCH:
-            M6800._handle_branch(il, inst_length, value)
+            M6800._handle_branch(il, nmemonic, inst_length, value)
 
         if mode == AddressMode.ACCUMULATOR:
             # handle the case where we need the name, not the reg, for pop

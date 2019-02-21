@@ -277,10 +277,10 @@ LLIL_OPERATIONS = {
     'ASL': lambda il, op_1, op_2: il.unimplemented(),
     'ASR': lambda il, op_1, op_2: il.unimplemented(),
     'BCC': lambda il, op_1, op_2: il.flag_condition(
-        LowLevelILFlagCondition.LLFC_ULT
+        LowLevelILFlagCondition.LLFC_UGE
     ),
     'BCS': lambda il, op_1, op_2: il.flag_condition(
-        LowLevelILFlagCondition.LLFC_UGE
+        LowLevelILFlagCondition.LLFC_ULT
     ),
     'BEQ': lambda il, op_1, op_2: il.flag_condition(
         LowLevelILFlagCondition.LLFC_E
@@ -300,7 +300,9 @@ LLIL_OPERATIONS = {
         op_1,
         flags='NZV'
     ),
-    'BLE': lambda il, op_1, op_2: il.unimplemented(),
+    'BLE': lambda il, op_1, op_2: il.flag_condition(
+        LowLevelILFlagCondition.LLFC_SLE
+    ),
     'BLS': lambda il, op_1, op_2: il.flag_condition(
         LowLevelILFlagCondition.LLFC_ULE
     ),
