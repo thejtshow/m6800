@@ -73,19 +73,22 @@ class M6800(Architecture):
         # need to collect information based on each address mode
         # INHERENT addressing => value is None
         # ACCUMULATOR addressing => value is in accumulator
-        if mode == AddressMode.RELATIVE:  # calculate absolute address here
-            # should always be 2 bytes long, second byte is 2's complement
-            value = addr + inst_length + int.from_bytes(data[1:2], 'big', signed=True)
-        elif mode == AddressMode.IMMEDIATE:
-            if inst_length == 2:
-                value = data[1]
-            else:
+        try:
+            if mode == AddressMode.RELATIVE:  # calculate absolute address here
+                # should always be 2 bytes long, second byte is 2's complement
+                value = addr + inst_length + int.from_bytes(data[1:2], 'big', signed=True)
+            elif mode == AddressMode.IMMEDIATE:
+                if inst_length == 2:
+                    value = data[1]
+                else:
+                    value = struct.unpack('>H', data[1:3])[0]
+            elif mode == AddressMode.EXTENDED:
                 value = struct.unpack('>H', data[1:3])[0]
-        elif mode == AddressMode.EXTENDED:
-            value = struct.unpack('>H', data[1:3])[0]
-        elif mode in [AddressMode.INDEXED,
-                      AddressMode.DIRECT]:
-            value = data[1]
+            elif mode in [AddressMode.INDEXED,
+                          AddressMode.DIRECT]:
+                value = data[1]
+        except struct.error as error:
+            raise LookupError(f'Unable to decode instruction at address 0x{addr}')
 
         return nmemonic, inst_length, inst_operand, inst_type, mode, value
 
@@ -162,7 +165,8 @@ class M6800(Architecture):
         operand, second_operand = None, None
 
         if mode == AddressMode.ACCUMULATOR:
-            operand = il.reg(1, inst_operand)
+            # handle the case where we need the name, not the reg, for pop
+            operand = inst_operand if nmemonic == 'PUL' else il.reg(1, inst_operand)
         elif mode == AddressMode.INDEXED:
             operand = il.load(
                 load_size,
@@ -195,7 +199,7 @@ class M6800(Architecture):
 
         # if we are dual mode, we have to handle things special
         if inst_type == InstructionType.DUAL:
-            pass
+            second_operand = inst_operand
 
         # Finally, calculate and append the instruction
         il.append(LLIL_OPERATIONS[nmemonic](il, operand, second_operand))
