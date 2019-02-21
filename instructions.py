@@ -2,6 +2,8 @@
 
 from enum import IntEnum
 
+from binaryninja import LowLevelILFlagCondition
+
 
 class AddressMode(IntEnum):
     '''All of the various addressing modes for the M6800'''
@@ -43,7 +45,7 @@ INSTRUCTIONS = {
     0x17: ('TBA', 1, 'BA', None, AddressMode.IMPLIED),
     0x19: ('DAA', 1, 'ACCA', None, AddressMode.IMPLIED),
     0x1B: ('ABA', 1, 'BA', None, AddressMode.IMPLIED),
-    0x20: ('BRA', 2, None, InstructionType.CONDITIONAL_BRANCH, AddressMode.RELATIVE),
+    0x20: ('BRA', 2, None, InstructionType.UNCONDITIONAL_BRANCH, AddressMode.RELATIVE),
     0x22: ('BHI', 2, None, InstructionType.CONDITIONAL_BRANCH, AddressMode.RELATIVE),
     0x23: ('BLS', 2, None, InstructionType.CONDITIONAL_BRANCH, AddressMode.RELATIVE),
     0x24: ('BCC', 2, None, InstructionType.CONDITIONAL_BRANCH, AddressMode.RELATIVE),
@@ -274,12 +276,24 @@ LLIL_OPERATIONS = {
     # TODO: figure out how to differentiate between registers and memory for ASL, ASR.
     'ASL': lambda il, op_1, op_2: il.unimplemented(),
     'ASR': lambda il, op_1, op_2: il.unimplemented(),
-    'BCC': lambda il, op_1, op_2: il.unimplemented(),
-    'BCS': lambda il, op_1, op_2: il.unimplemented(),
-    'BEQ': lambda il, op_1, op_2: il.unimplemented(),
-    'BGE': lambda il, op_1, op_2: il.unimplemented(),
-    'BGT': lambda il, op_1, op_2: il.unimplemented(),
-    'BHI': lambda il, op_1, op_2: il.unimplemented(),
+    'BCC': lambda il, op_1, op_2: il.flag_condition(
+        LowLevelILFlagCondition.LLFC_ULT
+    ),
+    'BCS': lambda il, op_1, op_2: il.flag_condition(
+        LowLevelILFlagCondition.LLFC_UGE
+    ),
+    'BEQ': lambda il, op_1, op_2: il.flag_condition(
+        LowLevelILFlagCondition.LLFC_E
+    ),
+    'BGE': lambda il, op_1, op_2: il.flag_condition(
+        LowLevelILFlagCondition.LLFC_SGE
+    ),
+    'BGT': lambda il, op_1, op_2: il.flag_condition(
+        LowLevelILFlagCondition.LLFC_SGT
+    ),
+    'BHI': lambda il, op_1, op_2: il.flag_condition(
+        LowLevelILFlagCondition.LLFC_UGT
+    ),
     'BIT': lambda il, op_1, op_2: il.and_expr(
         1,
         il.reg(1, op_2),
@@ -287,15 +301,29 @@ LLIL_OPERATIONS = {
         flags='NZV'
     ),
     'BLE': lambda il, op_1, op_2: il.unimplemented(),
-    'BLS': lambda il, op_1, op_2: il.unimplemented(),
-    'BLT': lambda il, op_1, op_2: il.unimplemented(),
-    'BMI': lambda il, op_1, op_2: il.unimplemented(),
-    'BNE': lambda il, op_1, op_2: il.unimplemented(),
-    'BPL': lambda il, op_1, op_2: il.unimplemented(),
+    'BLS': lambda il, op_1, op_2: il.flag_condition(
+        LowLevelILFlagCondition.LLFC_ULE
+    ),
+    'BLT': lambda il, op_1, op_2: il.flag_condition(
+        LowLevelILFlagCondition.LLFC_ULT
+    ),
+    'BMI': lambda il, op_1, op_2: il.flag_condition(
+        LowLevelILFlagCondition.LLFC_NEG
+    ),
+    'BNE': lambda il, op_1, op_2: il.flag_condition(
+        LowLevelILFlagCondition.LLFC_NE
+    ),
+    'BPL': lambda il, op_1, op_2: il.flag_condition(
+        LowLevelILFlagCondition.LLFC_POS
+    ),
     'BRA': lambda il, op_1, op_2: il.unimplemented(),
     'BSR': lambda il, op_1, op_2: il.call(op_1),
-    'BVC': lambda il, op_1, op_2: il.unimplemented(),
-    'BVS': lambda il, op_1, op_2: il.unimplemented(),
+    'BVC': lambda il, op_1, op_2: il.flag_condition(
+        LowLevelILFlagCondition.LLFC_NO
+    ),
+    'BVS': lambda il, op_1, op_2: il.flag_condition(
+        LowLevelILFlagCondition.LLFC_O
+    ),
     'CBA': lambda il, op_1, op_2: il.sub(
         1,
         il.reg(1, 'ACCA'),

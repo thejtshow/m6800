@@ -4,7 +4,7 @@ import ctypes
 
 from binaryninja import (
     Architecture, RegisterInfo, FlagRole, LowLevelILFlagCondition, log_error, InstructionTextToken,
-    InstructionTextTokenType as ITTT, InstructionInfo, BranchType, LowLevelILFunction
+    InstructionTextTokenType as ITTT, InstructionInfo, BranchType, LowLevelILFunction, LowLevelILLabel
 )
 
 # pylint: disable=wildcard-import
@@ -49,6 +49,7 @@ class M6800(Architecture):
     flags_required_for_flag_condition = {
         LowLevelILFlagCondition.LLFC_UGE: ['C'],
         LowLevelILFlagCondition.LLFC_UGT: ['C', 'Z'],
+        LowLevelILFlagCondition.LLFC_ULE: ['C', 'Z'],
         LowLevelILFlagCondition.LLFC_ULT: ['C'],
         LowLevelILFlagCondition.LLFC_SGE: ['N', 'V'],
         LowLevelILFlagCondition.LLFC_SLT: ['N', 'V'],
@@ -56,10 +57,41 @@ class M6800(Architecture):
         LowLevelILFlagCondition.LLFC_E: ['Z'],
         LowLevelILFlagCondition.LLFC_NE: ['Z'],
         LowLevelILFlagCondition.LLFC_NEG: ['N'],
-        LowLevelILFlagCondition.LLFC_POS: ['N']
+        LowLevelILFlagCondition.LLFC_POS: ['N'],
+        LowLevelILFlagCondition.LLFC_O: ['V'],
+        LowLevelILFlagCondition.LLFC_NO: ['V']
     }
 
     stack_pointer = 'SP'
+
+    # pylint: disable=invalid-name
+    @staticmethod
+    def _handle_branch(il: LowLevelILFunction, inst_length, value):
+        true_label = il.get_label_for_address(Architecture['M6800'], value)
+
+        if true_label is None:
+            true_label = LowLevelILLabel()
+            indirect = True
+        else:
+            indirect = False
+
+        false_label_found = True
+
+        false_label = il.get_label_for_address(
+            Architecture['M6800'], il.current_address + inst_length)
+
+        if false_label is None:
+            false_label = LowLevelILLabel()
+            false_label_found = False
+
+        il.append(il.if_expr(None, true_label, false_label))
+
+        if indirect:
+            il.mark_label(true_label)
+            il.append(il.jump(il.const(2, value)))
+
+        if not false_label_found:
+            il.mark_label(false_label)
 
     @staticmethod
     def _decode_instruction(data, addr):
@@ -88,7 +120,7 @@ class M6800(Architecture):
             elif mode in [AddressMode.INDEXED,
                           AddressMode.DIRECT]:
                 value = data[1]
-        except struct.error as error:
+        except struct.error:
             raise LookupError(f'Unable to decode instruction at address 0x{addr}')
 
         return nmemonic, inst_length, inst_operand, inst_type, mode, value
@@ -165,6 +197,10 @@ class M6800(Architecture):
         load_size = 2 if nmemonic in BIGGER_LOADS else 1
         operand, second_operand = None, None
 
+        # if this is a conditional branch, handle that separately
+        if inst_type == InstructionType.CONDITIONAL_BRANCH:
+            M6800._handle_branch(il, inst_length, value)
+
         if mode == AddressMode.ACCUMULATOR:
             # handle the case where we need the name, not the reg, for pop
             operand = inst_operand if nmemonic == 'PUL' else il.reg(1, inst_operand)
@@ -204,7 +240,7 @@ class M6800(Architecture):
 
         # Finally, calculate and append the instruction(s)
         il.append(LLIL_OPERATIONS[nmemonic](il, operand, second_operand))
-        
+
         return inst_length
 
 
