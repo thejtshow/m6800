@@ -293,7 +293,7 @@ LLIL_OPERATIONS = {
     'BNE': lambda il, op_1, op_2: il.unimplemented(),
     'BPL': lambda il, op_1, op_2: il.unimplemented(),
     'BRA': lambda il, op_1, op_2: il.unimplemented(),
-    'BSR': lambda il, op_1, op_2: il.unimplemented(),
+    'BSR': lambda il, op_1, op_2: il.call(op_1),
     'BVC': lambda il, op_1, op_2: il.unimplemented(),
     'BVS': lambda il, op_1, op_2: il.unimplemented(),
     'CBA': lambda il, op_1, op_2: il.sub(
@@ -375,7 +375,7 @@ LLIL_OPERATIONS = {
         )
     ),
     'JMP': lambda il, op_1, op_2: il.unimplemented(),
-    'JSR': lambda il, op_1, op_2: il.unimplemented(),
+    'JSR': lambda il, op_1, op_2: il.call(op_1),
     'LDA': lambda il, op_1, op_2: il.set_reg(
         1,
         op_2,
@@ -421,7 +421,7 @@ LLIL_OPERATIONS = {
     'ROL': lambda il, op_1, op_2: il.unimplemented(),
     'ROR': lambda il, op_1, op_2: il.unimplemented(),
     'RTI': lambda il, op_1, op_2: il.unimplemented(),
-    'RTS': lambda il, op_1, op_2: il.unimplemented(),
+    'RTS': lambda il, op_1, op_2: il.ret(il.pop(2)),
     'SBA': lambda il, op_1, op_2: il.set_reg(
         1,
         'ACCA',

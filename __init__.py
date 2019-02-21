@@ -1,5 +1,6 @@
 '''Binary Ninja architecture for the Motorola M6800 processor'''
 import struct
+import ctypes
 
 from binaryninja import (
     Architecture, RegisterInfo, FlagRole, LowLevelILFlagCondition, log_error, InstructionTextToken,
@@ -201,9 +202,9 @@ class M6800(Architecture):
         if inst_type == InstructionType.DUAL:
             second_operand = inst_operand
 
-        # Finally, calculate and append the instruction
+        # Finally, calculate and append the instruction(s)
         il.append(LLIL_OPERATIONS[nmemonic](il, operand, second_operand))
-
+        
         return inst_length
 
 
