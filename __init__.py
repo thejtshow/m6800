@@ -71,6 +71,13 @@ class M6800(Architecture):
 
     # pylint: disable=invalid-name
     @staticmethod
+    def _handle_jump(il: LowLevelILFunction, value):
+        label = il.get_label_for_address(Architecture['M6800'], value)
+
+        return il.jump(il.const(2, value)) if label is None else il.goto(label)
+
+    # pylint: disable=invalid-name
+    @staticmethod
     def _handle_branch(il: LowLevelILFunction, nmemonic, inst_length, value):
         true_label = il.get_label_for_address(Architecture['M6800'], value)
 
@@ -220,6 +227,12 @@ class M6800(Architecture):
         # if this is a conditional branch, handle that separately
         if inst_type == InstructionType.CONDITIONAL_BRANCH:
             M6800._handle_branch(il, nmemonic, inst_length, value)
+            return inst_length
+
+        # if this is an unconditional branch, handle that separately
+        if inst_type == InstructionType.UNCONDITIONAL_BRANCH:
+            M6800._handle_jump(il, value)
+            return inst_length
 
         if mode == AddressMode.ACCUMULATOR:
             # handle the case where we need the name, not the reg, for pop

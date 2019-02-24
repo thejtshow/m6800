@@ -1,5 +1,6 @@
 # m6800 (v1.0 alpha)
 Author: **thejtshow**
+
 _Plugin for the Motorola M6800 processor found in many pinball machines._
 ## Description:
 This plugin disassembles Motorola M6800 assembly code and generates LLIL.

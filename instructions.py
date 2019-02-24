@@ -322,6 +322,7 @@ LLIL_OPERATIONS = {
     'BPL': lambda il, op_1, op_2: il.flag_condition(
         LowLevelILFlagCondition.LLFC_POS
     ),
+    # implemented in _handle_jump
     'BRA': lambda il, op_1, op_2: il.unimplemented(),
     'BSR': lambda il, op_1, op_2: il.call(op_1),
     'BVC': lambda il, op_1, op_2: il.flag_condition(
@@ -338,7 +339,6 @@ LLIL_OPERATIONS = {
     ),
     'CLC': lambda il, op_1, op_2: il.flag_bit(1, 'C', 0),
     'CLI': lambda il, op_1, op_2: il.flag_bit(1, 'I', 0),
-    # TODO: figure out how to differentiate between registers and memory for CLR.
     'CLR': lambda il, op_1, op_2: il.and_expr(
         1,
         op_1,
@@ -413,6 +413,7 @@ LLIL_OPERATIONS = {
             flags='Z'
         )
     ),
+    # implemented in _handle_jump
     'JMP': lambda il, op_1, op_2: il.unimplemented(),
     'JSR': lambda il, op_1, op_2: il.call(op_1),
     'LDA': lambda il, op_1, op_2: il.set_reg(

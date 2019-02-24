@@ -57,6 +57,7 @@ else:
 
 template = u'''# {PluginName} (v{version})
 Author: **{author}**
+
 _{description}_
 ## Description:
 {longdescription}
