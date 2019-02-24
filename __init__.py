@@ -11,6 +11,9 @@ from binaryninja import (
 # pylint: disable=wildcard-import
 from .instructions import *
 
+# USE THIS VARIABLE TO SET YOUR MAX ADDRESS SPACE
+ADDRESS_MASK = 0x7FFF
+
 
 # pylint: disable=abstract-method
 class M6800(Architecture):
@@ -112,13 +115,19 @@ class M6800(Architecture):
             if mode == AddressMode.RELATIVE:  # calculate absolute address here
                 # should always be 2 bytes long, second byte is 2's complement
                 value = addr + inst_length + int.from_bytes(data[1:2], 'big', signed=True)
+                # use address mask to set value to real space
+                value &= ADDRESS_MASK
             elif mode == AddressMode.IMMEDIATE:
                 if inst_length == 2:
                     value = data[1]
                 else:
                     value = struct.unpack('>H', data[1:3])[0]
+                    # use address mask to set value to real space
+                    value &= ADDRESS_MASK
             elif mode == AddressMode.EXTENDED:
                 value = struct.unpack('>H', data[1:3])[0]
+                # use address mask to set value to real space
+                value &= ADDRESS_MASK
             elif mode in [AddressMode.INDEXED,
                           AddressMode.DIRECT]:
                 value = data[1]
