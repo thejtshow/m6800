@@ -225,22 +225,26 @@ class M6800(Architecture):
             # handle the case where we need the name, not the reg, for pop
             operand = inst_operand if nmemonic == 'PUL' else il.reg(1, inst_operand)
         elif mode == AddressMode.INDEXED:
+            # set the destination variable for the memory store operations
+            destination = il.add(
+                2,
+                il.reg(2, 'IX'),
+                il.const(1, value)
+            )
             operand = il.load(
                 load_size,
-                il.add(
-                    2,
-                    il.reg(2, 'IX'),
-                    il.const(1, value)
-                )
+                destination
             )
         elif mode in [AddressMode.DIRECT,
                       AddressMode.EXTENDED]:
+            # set the destination variable for the memory store operations
+            destination = il.const(
+                inst_length - 1,
+                value
+            )
             operand = il.load(
                 load_size,
-                il.const(
-                    inst_length - 1,
-                    value
-                )
+                destination
             )
         elif mode == AddressMode.IMMEDIATE:
             operand = il.const(
@@ -249,17 +253,29 @@ class M6800(Architecture):
             )
         elif mode == AddressMode.RELATIVE:
             # we have already calculated the absolute address
+            # set the destination variable for the memory store operations
+            destination = il.const(2, value)
             operand = il.load(
                 load_size,
-                il.const(2, value)
+                destination
             )
 
         # if we are dual mode, we have to handle things special
         if inst_type == InstructionType.DUAL:
             second_operand = inst_operand
 
+        # calculate the base LLIL
+        operation = LLIL_OPERATIONS[nmemonic](il, operand, second_operand)
+
+        # if the instruction has different destinations, set them appropriately
+        if nmemonic in REGISTER_OR_MEMORY_DESTINATIONS:
+            if mode == AddressMode.ACCUMULATOR:
+                operation = il.set_reg(1, inst_operand, operation)
+            else:
+                operation = il.store(1, destination, operation)
+
         # Finally, calculate and append the instruction(s)
-        il.append(LLIL_OPERATIONS[nmemonic](il, operand, second_operand))
+        il.append(operation)
 
         return inst_length
 

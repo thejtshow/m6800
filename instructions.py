@@ -230,6 +230,10 @@ INSTRUCTIONS = {
 # These instructions operate on a word, not a byte
 BIGGER_LOADS = ['CPX', 'LDS', 'LDX']
 
+# These instructions have different possibilities for destinations
+REGISTER_OR_MEMORY_DESTINATIONS = [
+    'ASL', 'ASR', 'CLR', 'COM', 'DEC', 'INC', 'LSR', 'NEG', 'ROL', 'ROR'
+]
 
 LLIL_OPERATIONS = {
     'ABA': lambda il, op_1, op_2: il.set_reg(
@@ -335,7 +339,12 @@ LLIL_OPERATIONS = {
     'CLC': lambda il, op_1, op_2: il.flag_bit(1, 'C', 0),
     'CLI': lambda il, op_1, op_2: il.flag_bit(1, 'I', 0),
     # TODO: figure out how to differentiate between registers and memory for CLR.
-    'CLR': lambda il, op_1, op_2: il.unimplemented(),
+    'CLR': lambda il, op_1, op_2: il.and_expr(
+        1,
+        op_1,
+        il.const(1, 0),
+        flags='NZVC'
+    ),
     'CLV': lambda il, op_1, op_2: il.flag_bit(1, 'V', 0),
     'CMP': lambda il, op_1, op_2: il.sub(
         1,
@@ -518,8 +527,12 @@ LLIL_OPERATIONS = {
         flags='NZV'
     ),
     'TPA': lambda il, op_1, op_2: il.unimplemented(),
-    # TODO: figure out how to differentiate between registers and memory for TST.
-    'TST': lambda il, op_1, op_2: il.unimplemented(),
+    'TST': lambda il, op_1, op_2: il.sub(
+        1,
+        op_1,
+        il.const(1, 0),
+        flags='NZVC'
+    ),
     'TSX': lambda il, op_1, op_2: il.set_reg(
         2,
         'IX',
