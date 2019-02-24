@@ -4,6 +4,9 @@ from enum import IntEnum
 
 from binaryninja import LowLevelILFlagCondition
 
+# USE THIS VARIABLE TO SET YOUR MAX ADDRESS SPACE
+ADDRESS_MASK = 0x7FFF
+
 
 class AddressMode(IntEnum):
     '''All of the various addressing modes for the M6800'''

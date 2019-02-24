@@ -1,6 +1,5 @@
 '''Binary Ninja architecture for the Motorola M6800 processor'''
 import struct
-import ctypes
 
 from binaryninja import (
     Architecture, RegisterInfo, FlagRole, LowLevelILFlagCondition, log_error, InstructionTextToken,
@@ -8,11 +7,8 @@ from binaryninja import (
     LowLevelILFunction, LowLevelILLabel
 )
 
-# pylint: disable=wildcard-import
-from .instructions import *
-
-# USE THIS VARIABLE TO SET YOUR MAX ADDRESS SPACE
-ADDRESS_MASK = 0x7FFF
+from .instructions import (AddressMode, InstructionType, INSTRUCTIONS, ADDRESS_MASK,
+                           BIGGER_LOADS, LLIL_OPERATIONS, REGISTER_OR_MEMORY_DESTINATIONS)
 
 
 # pylint: disable=abstract-method
