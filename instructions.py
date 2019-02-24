@@ -277,9 +277,18 @@ LLIL_OPERATIONS = {
             flags='NZV'
         )
     ),
-    # TODO: figure out how to differentiate between registers and memory for ASL, ASR.
-    'ASL': lambda il, op_1, op_2: il.unimplemented(),
-    'ASR': lambda il, op_1, op_2: il.unimplemented(),
+    'ASL': lambda il, op_1, op_2: il.shift_left(
+        1,
+        op_1,
+        il.const(1, 1),
+        flags='NZVC'
+    ),
+    'ASR': lambda il, op_1, op_2: il.arith_shift_right(
+        1,
+        op_1,
+        il.const(1, 1),
+        flags='NZVC'
+    ),
     'BCC': lambda il, op_1, op_2: il.flag_condition(
         LowLevelILFlagCondition.LLFC_UGE
     ),
@@ -352,17 +361,25 @@ LLIL_OPERATIONS = {
         op_1,
         flags='NZVC'
     ),
-    # TODO: figure out how to differentiate between registers and memory for COM.
-    'COM': lambda il, op_1, op_2: il.unimplemented(),
+    'COM': lambda il, op_1, op_2: il.not_expr(
+        1,
+        op_1,
+        flags='NZVC'
+    ),
     'CPX': lambda il, op_1, op_2: il.sub(
         2,
         il.reg(2, 'IX'),
-        op_1
+        op_1,
+        flags='NZV'
     ),
     # TODO: not really sure how to tackle this instruction...
     'DAA': lambda il, op_1, op_2: il.unimplemented(),
-    # TODO: figure out how to differentiate between registers and memory for DEC.
-    'DEC': lambda il, op_1, op_2: il.unimplemented(),
+    'DEC': lambda il, op_1, op_2: il.sub(
+        1,
+        op_1,
+        il.const(1, 1),
+        flags='NZV'
+    ),
     'DES': lambda il, op_1, op_2: il.set_reg(
         2,
         'SP',
@@ -392,8 +409,12 @@ LLIL_OPERATIONS = {
             flags='NZV'
         )
     ),
-    # TODO: figure out how to differentiate between registers and memory for INC.
-    'INC': lambda il, op_1, op_2: il.unimplemented(),
+    'INC': lambda il, op_1, op_2: il.add(
+        1,
+        op_1,
+        il.const(1, 1),
+        flags='NZV'
+    ),
     'INS': lambda il, op_1, op_2: il.set_reg(
         2,
         'SP',
@@ -434,9 +455,17 @@ LLIL_OPERATIONS = {
         op_1,
         flags='NZV'
     ),
-    # TODO: figure out how to differentiate between registers and memory for LSR, NEG.
-    'LSR': lambda il, op_1, op_2: il.unimplemented(),
-    'NEG': lambda il, op_1, op_2: il.unimplemented(),
+    'LSR': lambda il, op_1, op_2: il.logical_shift_right(
+        1,
+        op_1,
+        il.const(1, 1),
+        flags='NZVC'
+    ),
+    'NEG': lambda il, op_1, op_2: il.neg_expr(
+        1,
+        op_1,
+        flags='NZVC'
+    ),
     'NOP': lambda il, op_1, op_2: il.nop(),
     'ORA': lambda il, op_1, op_2: il.set_reg(
         1,
@@ -457,9 +486,21 @@ LLIL_OPERATIONS = {
         op_1,
         il.pop(1)
     ),
-    # TODO: figure out how to differentiate between registers and memory for ROL, ROR.
-    'ROL': lambda il, op_1, op_2: il.unimplemented(),
-    'ROR': lambda il, op_1, op_2: il.unimplemented(),
+    'ROL': lambda il, op_1, op_2: il.rotate_left_carry(
+        1,
+        op_1,
+        il.const(1, 1),
+        il.flag('C'),
+        flags='NZVC'
+    ),
+    'ROR': lambda il, op_1, op_2: il.rotate_right_carry(
+        1,
+        op_1,
+        il.const(1, 1),
+        il.flag('C'),
+        flags='NZVC'
+    ),
+    # TODO: figure out how to handle interrupts
     'RTI': lambda il, op_1, op_2: il.unimplemented(),
     'RTS': lambda il, op_1, op_2: il.ret(il.pop(2)),
     'SBA': lambda il, op_1, op_2: il.set_reg(
