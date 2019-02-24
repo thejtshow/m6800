@@ -176,7 +176,7 @@ class M6800(Architecture):
     def get_instruction_info(self, data, addr):
         try:
             (_, inst_length, _,
-             inst_type, _, value) = M6800._decode_instruction(data, addr)
+             inst_type, mode, value) = M6800._decode_instruction(data, addr)
         except LookupError as error:
             log_error(error.__str__())
             return None
@@ -184,7 +184,9 @@ class M6800(Architecture):
         inst = InstructionInfo()
         inst.length = inst_length
 
-        if inst_type == InstructionType.CONDITIONAL_BRANCH:
+        if mode == AddressMode.INDEXED:  # In indexed, we don't know where to branch.
+            inst.add_branch(BranchType.UnresolvedBranch)
+        elif inst_type == InstructionType.CONDITIONAL_BRANCH:
             inst.add_branch(BranchType.TrueBranch, value)
             inst.add_branch(BranchType.FalseBranch, addr + inst_length)
         elif inst_type == InstructionType.UNCONDITIONAL_BRANCH:
