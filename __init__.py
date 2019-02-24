@@ -184,15 +184,22 @@ class M6800(Architecture):
         inst = InstructionInfo()
         inst.length = inst_length
 
-        if mode == AddressMode.INDEXED:  # In indexed, we don't know where to branch.
-            inst.add_branch(BranchType.UnresolvedBranch)
-        elif inst_type == InstructionType.CONDITIONAL_BRANCH:
-            inst.add_branch(BranchType.TrueBranch, value)
-            inst.add_branch(BranchType.FalseBranch, addr + inst_length)
+        if inst_type == InstructionType.CONDITIONAL_BRANCH:
+            if mode == AddressMode.INDEXED:
+                inst.add_branch(BranchType.UnresolvedBranch)
+            else:
+                inst.add_branch(BranchType.TrueBranch, value)
+                inst.add_branch(BranchType.FalseBranch, addr + inst_length)
         elif inst_type == InstructionType.UNCONDITIONAL_BRANCH:
-            inst.add_branch(BranchType.UnconditionalBranch, value)
+            if mode == AddressMode.INDEXED:
+                inst.add_branch(BranchType.UnresolvedBranch)
+            else:
+                inst.add_branch(BranchType.UnconditionalBranch, value)
         elif inst_type == InstructionType.CALL:
-            inst.add_branch(BranchType.CallDestination, value)
+            if mode == AddressMode.INDEXED:
+                inst.add_branch(BranchType.UnresolvedBranch)
+            else:
+                inst.add_branch(BranchType.CallDestination, value)
         elif inst_type == InstructionType.RETURN:
             inst.add_branch(BranchType.FunctionReturn)
 
